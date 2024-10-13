@@ -12,6 +12,9 @@ class Circuit(BaseModel):
 class CircuitInfo(Circuit):
     total_races: int
     avg_round: float
+    circuitRef: str
+    alt: Optional[float]
+    url: Optional[str]
 
 class CircuitRace(BaseModel):
     race_id: int

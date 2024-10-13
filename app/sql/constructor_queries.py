@@ -33,15 +33,17 @@ ORDER BY year DESC, position
 # 생성자 결과 조회 쿼리
 GET_CONSTRUCTOR_RESULTS = Template("""
 SELECT 
-    r.*, 
+    CAST(r.position AS INT) as position,
+    r.points,
+    s.status,
     ra.year, 
     ra.name as race_name, 
     d.surname as driver_surname
-FROM constructorResults cr
-JOIN results r ON cr.raceId = r.raceId AND cr.constructorId = r.constructorId
-JOIN races ra ON r.raceId = ra.raceId
-JOIN drivers d ON r.driverId = d.driverId
-WHERE cr.constructorId = {{ constructor_id }}
+FROM results r
+    JOIN races ra ON r.raceId = ra.raceId
+    JOIN drivers d ON r.driverId = d.driverId
+    JOIN status s ON r.statusId = s.statusId
+WHERE r.constructorId = {{ constructor_id }}
 {% if year %}
 AND ra.year = {{ year }}
 {% endif %}

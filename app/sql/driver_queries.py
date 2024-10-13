@@ -24,20 +24,26 @@ GET_DRIVERS_COUNT = Template("""
 # 드라이버 상세 정보를 가져오는 쿼리
 GET_DRIVER_DETAILS = Template("""
     SELECT 
-        d.*, 
+        d.driverId,
+        d.driverRef,
+        d.number,
+        d.code,
+        d.forename,
+        d.surname,
+        d.dob,
+        d.nationality,
+        d.url,
         COUNT(DISTINCT r.raceId) as total_races,
-        SUM(ds.points) as total_points,
-        COUNT(CASE WHEN ds.position = 1 THEN 1 END) as wins
+        SUM(r.points) as total_points,
+        COUNT(CASE WHEN r.position = 1 THEN 1 END) as wins
     FROM 
         drivers d
     LEFT JOIN 
         results r ON d.driverId = r.driverId
-    LEFT JOIN 
-        driverStandings ds ON d.driverId = ds.driverId
     WHERE 
         d.driverId = {{ driver_id }}
     GROUP BY 
-        d.driverId
+        d.driverId, d.driverRef, d.number, d.code, d.forename, d.surname, d.dob, d.nationality, d.url
 """)
 
 # 드라이버의 연도별 순위를 가져오는 쿼리
@@ -47,7 +53,7 @@ GET_DRIVER_STANDINGS = Template("""
         r.year, 
         r.name as race_name
     FROM 
-        driverStandings ds
+        driver_standings ds
     JOIN 
         races r ON ds.raceId = r.raceId
     WHERE 

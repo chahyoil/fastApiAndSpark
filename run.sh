@@ -2,7 +2,7 @@
 
 set -e
 
-cd /home/chahyoil/fastAPISpark
+cd "$(dirname "$0")"
 
 LOG_FILE="docker_build_run.log"
 echo "Starting build and run process at $(date)" > $LOG_FILE

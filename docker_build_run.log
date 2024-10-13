@@ -1,66 +1,48 @@
-Starting build and run process at Sun Oct 13 18:59:12 KST 2024
-#1 [internal] load build definition from Dockerfile
-#1 sha256:f3805b8bedef1121160da9bc0539d48735b629a2847d3ab2d7540cc6b998dd18
-#1 transferring dockerfile: 1.22kB done
-#1 DONE 0.0s
-
-#2 [internal] load metadata for docker.io/bitnami/spark:3.1.3
-#2 sha256:e2b2c2016a5bd5e52d60994d2beddf8fd0babce90e373272d8691a1928af26db
-#2 DONE 2.0s
-
-#3 [internal] load .dockerignore
-#3 sha256:c4bad815b32066f34213e22de1f46f7d7be95f6ee6f8df256e6f45c8873a14cb
-#3 transferring context: 2B done
-#3 DONE 0.0s
-
-#13 [1/9] FROM docker.io/bitnami/spark:3.1.3@sha256:abb072fa8922f00846d10d68e5a50578683a99b68dcdc218915bd97981a63740
-#13 sha256:2f6fa7e2d24a78c43f6122b5b2cd9ac4e330a39cce424348169052ac6d3d81b7
-#13 DONE 0.0s
-
-#9 [internal] load build context
-#9 sha256:59a07dd686f064495704e4f5d44657125a8127e77d4c9f0432982ecbb2610771
-#9 transferring context: 4.12kB done
-#9 DONE 0.0s
-
-#12 [2/9] RUN apt-get update && apt-get install -y     wget     build-essential     zlib1g-dev     libncurses5-dev     libgdbm-dev     libnss3-dev     libssl-dev     libreadline-dev     libffi-dev     libsqlite3-dev     && rm -rf /var/lib/apt/lists/*
-#12 sha256:d579ce33a368d4a6f6dfdc3e511361923da0e3e5875f7af6c5044fd2da17a9ac
-#12 CACHED
-
-#7 [6/9] RUN python3.10 -m pip install --no-cache-dir -r requirements.txt
-#7 sha256:006dd032eaaa0af0f9832bc4701d29ab637ba3061c486c048ba209883e2efa37
-#7 CACHED
-
-#8 [5/9] COPY requirements.txt .
-#8 sha256:4e9e7b8b1a1b24bdd7e5a72fd575ad85d8d6de7be1ea100252e8c32e1c4031fa
-#8 CACHED
-
-#6 [7/9] WORKDIR /app
-#6 sha256:e05338b83aa6b526b5d2a50d26e486ffa8fc6febded44e6fa1d790defae5043c
-#6 CACHED
-
-#11 [3/9] RUN wget https://www.python.org/ftp/python/3.10.0/Python-3.10.0.tgz     && tar -xf Python-3.10.0.tgz     && cd Python-3.10.0     && ./configure --enable-optimizations     && make -j $(nproc)     && make altinstall     && cd ..     && rm -rf Python-3.10.0 Python-3.10.0.tgz
-#11 sha256:07ee97ab79762deeccfdb9bf18d59ad20ba26aca33c10e41f46a51adabb05625
-#11 CACHED
-
-#10 [4/9] RUN python3.10 -m ensurepip     && python3.10 -m pip install --upgrade pip
-#10 sha256:08445c62bc4d06ee86138f291e3301bfba0ab0cf3bf71e7ce7dd3d144d539845
-#10 CACHED
-
-#5 [8/9] RUN mkdir -p /tmp/f1db && chown 1001:1001 /tmp/f1db
-#5 sha256:0f0abd884a14904c30dd57e6e5415d65532fda4a99d7318d88f780ec8a569c24
-#5 CACHED
-
-#4 [9/9] COPY ./app/ .
-#4 sha256:e79a07bb714e0eca7a355cd8dd8fc7982a3a24ffebcf84d6cae254b2ffbfc6c6
-#4 DONE 0.0s
-
-#14 exporting to image
-#14 sha256:b7e838c41eb720ef8e94d33815af65b09ab48b99078e1381c8b6f0687d13e93c
-#14 exporting layers 0.0s done
-#14 writing image sha256:a76c04a9fcc247b7dc8554810aa953ea9e45685072e5e53e240350e46c515950 done
-#14 naming to docker.io/library/f1-race-data-api:latest done
-#14 DONE 0.1s
-68c3be008da1c295fb9972d88142e899bd42988fd92ae65fa92480a4c54ee2d4
+Starting build and run process at Sun Oct 13 08:44:35 PM KST 2024
+Sending build context to Docker daemon  160.3kB
+Step 1/13 : FROM bitnami/spark:3.1.3
+ ---> 598ad5b42539
+Step 2/13 : USER root
+ ---> Using cache
+ ---> e3fa2e931517
+Step 3/13 : RUN apt-get update && apt-get install -y     wget     build-essential     zlib1g-dev     libncurses5-dev     libgdbm-dev     libnss3-dev     libssl-dev     libreadline-dev     libffi-dev     libsqlite3-dev     && rm -rf /var/lib/apt/lists/*
+ ---> Using cache
+ ---> 9e201aa69295
+Step 4/13 : RUN wget https://www.python.org/ftp/python/3.10.0/Python-3.10.0.tgz     && tar -xf Python-3.10.0.tgz     && cd Python-3.10.0     && ./configure --enable-optimizations     && make -j $(nproc)     && make altinstall     && cd ..     && rm -rf Python-3.10.0 Python-3.10.0.tgz
+ ---> Using cache
+ ---> 0bbd85c2b86a
+Step 5/13 : RUN python3.10 -m ensurepip     && python3.10 -m pip install --upgrade pip
+ ---> Using cache
+ ---> cebad2d64741
+Step 6/13 : COPY requirements.txt .
+ ---> Using cache
+ ---> 04de3a6501fe
+Step 7/13 : RUN python3.10 -m pip install --no-cache-dir -r requirements.txt
+ ---> Using cache
+ ---> 4cfd76c6d256
+Step 8/13 : WORKDIR /app
+ ---> Using cache
+ ---> 7c5390347ba0
+Step 9/13 : RUN mkdir -p /tmp/f1db && chown 1001:1001 /tmp/f1db
+ ---> Using cache
+ ---> 55e9c34335fa
+Step 10/13 : COPY ./app/ .
+ ---> 6b9fa3aa2622
+Step 11/13 : CMD ["python3.10", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+ ---> Running in 1dff5077c819
+Removing intermediate container 1dff5077c819
+ ---> c0a9ab82aea0
+Step 12/13 : EXPOSE 8000
+ ---> Running in ea7fdb319497
+Removing intermediate container ea7fdb319497
+ ---> 55d2766c9d82
+Step 13/13 : USER 1001
+ ---> Running in da8d0e34dd0c
+Removing intermediate container da8d0e34dd0c
+ ---> 2f5e9b516744
+Successfully built 2f5e9b516744
+Successfully tagged f1-race-data-api:latest
+b647e9725b4d534def4e37cba1d01eb90950d0b26ac5e3f96fd3ef3eedfdb3db
 Container is running successfully.
 Access the API at http://localhost:8000
-Build and run process completed at Sun Oct 13 18:59:21 KST 2024
+Build and run process completed at Sun Oct 13 08:44:42 PM KST 2024

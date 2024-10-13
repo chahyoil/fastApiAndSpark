@@ -3,7 +3,8 @@ from jinja2 import Template
 # 레이스 결과 조회 쿼리
 GET_RACE_RESULTS = Template("""
 SELECT 
-    r.*, 
+    r.*,
+    d.forename || ' ' || d.surname AS driver_name,
     d.forename, 
     d.surname, 
     c.name as constructor_name, 
@@ -20,10 +21,9 @@ ORDER BY r.position
 GET_FASTEST_LAPS = Template("""
 SELECT 
     r.position, 
-    d.forename, 
-    d.surname, 
-    r.fastestLapTime, 
-    r.fastestLapSpeed
+    CONCAT(d.forename, ' ', d.surname) AS driver_name, 
+    r.fastestLapTime AS fastest_lap_time, 
+    r.fastestLapSpeed AS fastest_lap_speed
 FROM results r
 JOIN drivers d ON r.driverId = d.driverId
 WHERE r.raceId = {{ race_id }} 
@@ -31,7 +31,6 @@ WHERE r.raceId = {{ race_id }}
 ORDER BY r.fastestLapTime
 LIMIT 10
 """)
-
 # 모든 레이스 목록 카운트 조회 쿼리
 GET_ALL_RACES_COUNT = Template("""
     SELECT COUNT(*) AS count FROM races
@@ -39,7 +38,9 @@ GET_ALL_RACES_COUNT = Template("""
 
 # 모든 레이스 목록 조회 쿼리 (페이지네이션 적용)
 GET_ALL_RACES = Template("""
-    SELECT * FROM (
+    SELECT 
+        raceId as race_id, year, round, name, date
+    FROM (
         SELECT 
             raceId, year, round, name, date,
             ROW_NUMBER() OVER (ORDER BY year DESC, round) as row_num 
@@ -50,7 +51,18 @@ GET_ALL_RACES = Template("""
 
 # 특정 레이스 세부 정보 조회 쿼리
 GET_RACE_DETAILS = Template("""
-SELECT r.*, c.name as circuit_name, c.location, c.country
+SELECT 
+    r.raceId,
+    r.year,
+    r.round,
+    r.circuitId,
+    r.name as race_name,
+    r.date,
+    r.time,
+    r.url as race_url,
+    c.name as circuit_name, 
+    c.location, 
+    c.country
 FROM races r
 JOIN circuits c ON r.circuitId = c.circuitId
 WHERE r.raceId = {{ race_id }}

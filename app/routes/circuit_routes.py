@@ -52,6 +52,7 @@ def get_circuit_races(circuit_id: int):
         
         # 쿼리 실행 및 결과 변환
         result = spark.sql(query)
-        return {"circuit_races": spark_to_json(result)}
+        circuit_races = spark_to_json(result)
+        return CircuitRaceResponse(circuit_races=circuit_races)
     except Exception as e:
         raise handle_exception(e)

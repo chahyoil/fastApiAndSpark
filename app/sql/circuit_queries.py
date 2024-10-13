@@ -22,20 +22,43 @@ SELECT COUNT(*) as count FROM circuits
 """)
 
 GET_CIRCUIT_INFO = Template("""
-SELECT c.*, 
-       COUNT(DISTINCT r.raceId) as total_races,
-       AVG(r.round) as avg_round
+SELECT 
+    c.circuitId as circuit_id, 
+    c.circuitRef,
+    c.name, 
+    c.location, 
+    c.country, 
+    c.lat, 
+    c.lng,
+    c.alt,
+    c.url,
+    COUNT(DISTINCT r.raceId) as total_races,
+    AVG(r.round) as avg_round
 FROM circuits c
 LEFT JOIN races r ON c.circuitId = r.circuitId
 WHERE c.circuitId = {{ circuit_id }}
-GROUP BY c.circuitId
+GROUP BY 
+    c.circuitId, 
+    c.circuitRef,
+    c.name, 
+    c.location, 
+    c.country, 
+    c.lat, 
+    c.lng,
+    c.alt,
+    c.url
 """)
 
 GET_CIRCUIT_RACES = Template("""
-SELECT r.*, 
-       d.surname as winner_surname,
-       c.name as constructor_name,
-       res.time as winning_time
+SELECT 
+    r.raceId AS race_id,
+    r.year,
+    r.round,
+    r.name,
+    r.date,
+    d.surname as winner_surname,
+    c.name as constructor_name,
+    res.time as winning_time
 FROM races r
 JOIN results res ON r.raceId = res.raceId
 JOIN drivers d ON res.driverId = d.driverId

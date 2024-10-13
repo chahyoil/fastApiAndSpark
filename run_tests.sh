@@ -15,7 +15,7 @@ echo "Application is up and running."
 
 # 컨테이너 내부에서 테스트 실행
 echo "Running tests..."
-docker exec $CONTAINER_NAME python3.10 -m pytest /app/tests
+docker exec $CONTAINER_NAME python3.10 -m pytest -p no:cacheprovider /app/tests
 
 # 테스트 실행 결과 저장
 TEST_EXIT_CODE=$?

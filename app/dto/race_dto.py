@@ -8,7 +8,15 @@ class Race(BaseModel):
     name: str
     date: str
 
-class RaceDetails(Race):
+class RaceDetails(BaseModel):
+    raceId: int
+    year: int
+    round: int
+    circuitId: int
+    race_name: str
+    date: str
+    time: str
+    race_url: str
     circuit_name: str
     location: str
     country: str
@@ -37,8 +45,6 @@ class RaceResponse(BaseModel):
 
 class RaceDetailsResponse(BaseModel):
     race_details: RaceDetails
-    results: List[RaceResult]
-    fastest_laps: List[FastestLap]
 
 class RaceResultsResponse(BaseModel):
     race_results: List[RaceResult]

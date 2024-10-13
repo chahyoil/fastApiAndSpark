@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query
-from dto.race_dto import RaceResponse, RaceDetailsResponse, RaceResultsResponse, FastestLapsResponse, Race
+from dto.race_dto import RaceResponse, RaceDetailsResponse, RaceResultsResponse, FastestLapsResponse, Race, RaceDetails
 from sql.race_queries import GET_RACE_RESULTS, GET_FASTEST_LAPS, GET_ALL_RACES, GET_RACE_DETAILS, GET_ALL_RACES_COUNT
 from utils.spark_utils import get_spark_session
 from utils.json_utils import spark_to_json
@@ -30,10 +30,10 @@ async def get_race_details(race_id: int):
         spark = get_spark_session()
         query = GET_RACE_DETAILS.render(race_id=race_id)
         result = spark.sql(query)
-        race_details = spark_to_json(result)
-        if not race_details:
+        if not spark_to_json(result):
             raise HTTPException(status_code=404, detail="Race not found")
-        return {"race_details": race_details[0]}
+        race_details = RaceDetails(**spark_to_json(result)[0])
+        return RaceDetailsResponse(race_details=race_details)
     except Exception as e:
         raise handle_exception(e)
 
@@ -49,7 +49,8 @@ async def get_race_results(race_id: int):
         spark = get_spark_session()
         query = GET_RACE_RESULTS.render(race_id=race_id)
         result = spark.sql(query)
-        return {"race_results": spark_to_json(result)}
+        race_results = spark_to_json(result)
+        return RaceResultsResponse(race_results=race_results)
     except Exception as e:
         raise handle_exception(e)
 
@@ -65,6 +66,7 @@ async def get_fastest_laps(race_id: int):
         spark = get_spark_session()
         query = GET_FASTEST_LAPS.render(race_id=race_id)
         result = spark.sql(query)
-        return {"fastest_laps": spark_to_json(result)}
+        fastest_laps = spark_to_json(result)
+        return FastestLapsResponse(fastest_laps=fastest_laps)
     except Exception as e:
         raise handle_exception(e)

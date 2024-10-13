@@ -10,7 +10,7 @@ class ConstructorStanding(BaseModel):
 
 class ConstructorResult(BaseModel):
     position: Optional[int]
-    points: float
+    points: Optional[float]
     status: str
     year: int
     race_name: str
@@ -24,4 +24,4 @@ class ConstructorStandingsResponse(BaseModel):
     total_pages: int
 
 class ConstructorResultsResponse(BaseModel):
-    results: List[ConstructorResult]
+    constructor_results: List[ConstructorResult]

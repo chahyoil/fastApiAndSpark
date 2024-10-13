@@ -9,7 +9,16 @@ class Driver(BaseModel):
     dob: str
     nationality: str
 
-class DriverDetails(Driver):
+class DriverDetails(BaseModel):
+    driverId: int
+    driverRef: str
+    number: Optional[str]
+    code: Optional[str]
+    forename: str
+    surname: str
+    dob: str
+    nationality: str
+    url: str
     total_races: int
     total_points: float
     wins: int
@@ -30,7 +39,6 @@ class DriverResponse(BaseModel):
 
 class DriverDetailsResponse(BaseModel):
     driver_details: DriverDetails
-    standings: List[DriverStanding]
 
 class DriverStandingsResponse(BaseModel):
     driver_standings: List[DriverStanding]

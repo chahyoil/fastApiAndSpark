@@ -6,36 +6,15 @@ from math import ceil
 
 router = APIRouter()
 
-@router.get("/drivers")
-def get_drivers(
-    page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(10, ge=1, le=100, description="Number of items per page")
-):
+@router.get("/all-tables")
+def get_all_tables():
     spark = get_spark_session()
-    
-    # Calculate the offset
-    offset = (page - 1) * page_size
-    
-    # Get total count of drivers
-    count_query = GET_DRIVERS_COUNT.render()
-    total_count = spark.sql(count_query).first()['count']
-    
-    # Calculate total pages
-    total_pages = ceil(total_count / page_size)
-    
-    # Render the query with pagination
-    query = GET_ALL_DRIVERS.render(page_size=page_size, offset=offset)
-    result = spark.sql(query)
-    
-    drivers = spark_to_json(result)
-    
-    return {
-        "drivers": drivers,
-        "page": page,
-        "page_size": page_size,
-        "total_items": total_count,
-        "total_pages": total_pages
-    }
+    return {"tables": spark.catalog.listTables()}
+
+@router.get("/table/{table_name}")
+def get_table(table_name: str):
+    spark = get_spark_session()
+    return {"table": spark.table(table_name)}
 
 @router.get("/drivers/{driver_id}")
 def get_driver(driver_id: int):
