@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Query, HTTPException
-from dto.driver_dto import DriverResponse, DriverDetailsResponse, DriverStandingsResponse, Driver, DriverDetails
+from dto.driver_dto import DriverResponse, DriverDetailsResponse, DriverStandingsResponse, Driver, DriverDetails, DriverStanding
 from sql.driver_queries import GET_DRIVER_DETAILS, GET_DRIVER_STANDINGS, GET_DRIVERS_COUNT, GET_ALL_DRIVERS
 from utils.spark_utils import get_spark_session
 from utils.json_utils import spark_to_json
@@ -43,7 +43,7 @@ def get_driver_details(driver_id: int):
         # 쿼리 실행 및 결과 변환
         result = spark.sql(query)
 
-        driver_details = DriverDetails(**spark_to_json(result)[0])
+        driver_details = spark_to_json(result, DriverDetails)[0]
         return DriverDetailsResponse(driver_details=driver_details)
 
     except Exception as e:
@@ -73,7 +73,7 @@ def get_driver_standings(driver_id: int, year: int = Query(None)):
         
         # 쿼리 실행 및 결과 변환
         result = spark.sql(query)
-        driver_standings = spark_to_json(result)
+        driver_standings = spark_to_json(result, DriverStanding)
 
         return DriverStandingsResponse(driver_standings=driver_standings)
     except Exception as e:

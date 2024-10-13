@@ -23,13 +23,16 @@ async def get_circuits(
 def get_circuit_info(circuit_id: int):
     try:
         spark = get_spark_session()
+        
+        # Circuit Info 쿼리 실행 및 변환
         query = GET_CIRCUIT_INFO.render(circuit_id=circuit_id)
         result = spark.sql(query)
-        circuit_info = CircuitInfo(**spark_to_json(result)[0])
+        circuit_info = spark_to_json(result, CircuitInfo)[0]
 
+        # Circuit Races 쿼리 실행 및 변환
         query = GET_CIRCUIT_RACES.render(circuit_id=circuit_id)
         result = spark.sql(query)
-        races = [CircuitRace(**race) for race in spark_to_json(result)]
+        races = spark_to_json(result, CircuitRace)
 
         return CircuitInfoResponse(circuit_info=circuit_info, races=races)
     except Exception as e:
@@ -52,7 +55,7 @@ def get_circuit_races(circuit_id: int):
         
         # 쿼리 실행 및 결과 변환
         result = spark.sql(query)
-        circuit_races = spark_to_json(result)
+        circuit_races = spark_to_json(result, CircuitRace)
         return CircuitRaceResponse(circuit_races=circuit_races)
     except Exception as e:
         raise handle_exception(e)

@@ -4,7 +4,7 @@ from utils.spark_utils import get_spark_session
 from utils.json_utils import spark_to_json
 from utils.error_handlers import handle_exception
 from utils.pagination import paginate
-from dto.constructor_dto import ConstructorStandingsResponse, ConstructorResultsResponse, ConstructorStanding
+from dto.constructor_dto import ConstructorStandingsResponse, ConstructorResultsResponse, ConstructorStanding, ConstructorResult
 
 router = APIRouter()
 
@@ -41,6 +41,8 @@ def get_constructor_results(constructor_id: int, year: int = Query(None)):
         
         # 쿼리 실행 및 결과 반환
         result = spark.sql(query)
-        return {"constructor_results": spark_to_json(result)}
+        constructor_results = spark_to_json(result, ConstructorResult)
+        return ConstructorResultsResponse(constructor_results=constructor_results)
+    
     except Exception as e:
         raise handle_exception(e)
