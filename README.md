@@ -1,5 +1,3 @@
-이해했습니다. README.md를 그에 맞게 수정하겠습니다. Docker 사용이 필수적인 부분을 강조하고, 실행 방법을 더 자세히 설명하겠습니다.
-
 # F1 Race Data API
 
 이 프로젝트는 F1 레이스 데이터에 접근할 수 있는 FastAPI 기반의 RESTful API를 제공한다. Docker를 사용하여 애플리케이션을 실행한다.

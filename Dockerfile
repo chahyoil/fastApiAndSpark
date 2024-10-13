@@ -16,6 +16,17 @@ RUN apt-get update && apt-get install -y \
     libsqlite3-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# Java 11 설치
+RUN wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public | apt-key add - \
+    && echo "deb https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list \
+    && apt-get update \
+    && apt-get install -y temurin-11-jdk \
+    && rm -rf /var/lib/apt/lists/*
+
+# Java 환경 변수 설정
+ENV JAVA_HOME /usr/lib/jvm/temurin-11-jdk-amd64
+ENV PATH $JAVA_HOME/bin:$PATH
+
 # Python 3.10 설치
 RUN wget https://www.python.org/ftp/python/3.10.0/Python-3.10.0.tgz \
     && tar -xf Python-3.10.0.tgz \
