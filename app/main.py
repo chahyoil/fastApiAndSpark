@@ -1,7 +1,7 @@
 import logging
 from fastapi import FastAPI
 from initialize_f1_data import initialize_f1_data
-from routes import f1_routes, race_routes, driver_routes, constructor_routes, circuit_routes
+from routes import sample, race_routes, driver_routes, constructor_routes, circuit_routes
 from utils.spark_utils import get_spark_session, stop_spark_session
 from middleware.xss_protection import XSSProtectionMiddleware
 from middleware.cors import add_cors_middleware
@@ -43,7 +43,7 @@ async def shutdown_event():
     logger.info("Spark session stopped.")
 
 # F1 라우트 포함
-app.include_router(f1_routes.router, prefix="/api/sample")
+app.include_router(sample.router, prefix="/api/sample")
 app.include_router(race_routes.router, prefix="/api/races")
 app.include_router(driver_routes.router, prefix="/api/drivers")
 app.include_router(constructor_routes.router, prefix="/api/constructors")
