@@ -1,0 +1,20 @@
+python3.10
+pyspark==3.3.2
+spark 3.1.3
+
+Circuits (서킷):
+    GET /api/circuits/
+    GET /api/circuits/{circuit_id}
+    GET /api/circuits/{circuit_id}/races
+Constructors (팀):
+    GET /api/constructors/standings
+    GET /api/constructors/{constructor_id}/results
+Drivers (드라이버):
+GET /api/drivers/
+    GET /api/drivers/{driver_id}
+    GET /api/drivers/{driver_id}/standings
+Races (경주):
+    GET /api/races/
+    GET /api/races/{race_id}
+    GET /api/races/{race_id}/results
+    GET /api/races/{race_id}/fastest-laps
