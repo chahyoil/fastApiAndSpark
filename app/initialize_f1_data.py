@@ -1,11 +1,10 @@
 import os
-import logging
+from utils.logging_utils import get_logger
 import requests
 import zipfile
 from utils.spark_utils import get_spark_session
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 def initialize_f1_data():
     spark = get_spark_session()

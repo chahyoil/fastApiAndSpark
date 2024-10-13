@@ -1,4 +1,4 @@
-import logging
+
 from fastapi import FastAPI
 from initialize_f1_data import initialize_f1_data
 from routes import sample, race_routes, driver_routes, constructor_routes, circuit_routes
@@ -7,8 +7,17 @@ from middleware.xss_protection import XSSProtectionMiddleware
 from middleware.cors import add_cors_middleware
 from middleware.auth import AuthMiddleware
 from routes import auth_routes, admin_routes
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from utils.logging_utils import setup_logger, get_logger
+from middleware.logging_middleware import LoggingMiddleware
+
+import os
+
+# 환경 변수에서 환경 설정을 가져옵니다. 기본값은 "dev"
+env = os.getenv("APP_ENV", "dev")
+# 앱 시작 시 로거 설정
+setup_logger(env)
+
+logger = get_logger(__name__)
 
 app = FastAPI(
     title="F1 Race Data API",
@@ -18,6 +27,7 @@ app = FastAPI(
     redoc_url="/redoc",  # ReDoc 경로 (기본값)
 )
 
+app.add_middleware(LoggingMiddleware)
 
 # CORS 미들웨어 추가
 add_cors_middleware(app)

@@ -5,9 +5,9 @@ from functools import wraps
 from utils.spark_utils import get_spark_session
 from utils.json_utils import spark_to_json
 from math import ceil
-import logging
+from utils.logging_utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 def paginate(count_query_template, data_query_template, response_model: Type[BaseModel] = None):
     def decorator(func):

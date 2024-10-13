@@ -38,6 +38,7 @@ RUN python3.10 -m pip install --no-cache-dir -r requirements.txt
 WORKDIR /app
 
 RUN mkdir -p /tmp/f1db && chown 1001:1001 /tmp/f1db
+RUN mkdir -p /app/logs && chown 1001:1001 /app/logs
 
 # 애플리케이션 코드 복사
 COPY ./app/ .

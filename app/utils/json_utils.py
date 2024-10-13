@@ -2,9 +2,9 @@ from pydantic import BaseModel
 from typing import Type, List
 from pyspark.sql import Row
 import json
-import logging
+from utils.logging_utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 def spark_to_json(spark_result, model: Type[BaseModel] = None):
     if isinstance(spark_result, list):

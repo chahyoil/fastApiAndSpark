@@ -1,7 +1,7 @@
-import logging
 from fastapi import HTTPException
+from utils.logging_utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 def handle_exception(e: Exception, error_message: str = "내부 서버 오류가 발생했습니다."):
     """
