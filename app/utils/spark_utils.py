@@ -4,7 +4,7 @@ from threading import Lock
 from queue import Queue
 import weakref
 import uuid
-
+import time
 logger = get_logger(__name__)
 
 class SparkSessionPool:
@@ -31,9 +31,10 @@ class SparkSessionPool:
 
     def initialize(self):
         self._pool = Queue()
-        self._active_sessions = set()
-        self._max_sessions = 3  # 최대 세션 수 설정
+        self._active_sessions = {}  # 세션 ID를 키로 사용하는 딕셔너리로 변경
+        self._max_sessions = 4
         self._base_session = self._create_base_session()
+        self._session_timeout = 30  # 30초 타임아웃
 
     def _create_base_session(self):
         spark = SparkSession.builder \
@@ -48,38 +49,73 @@ class SparkSessionPool:
         logger.info("Created base Spark session")
         return spark
 
-    def get_spark_session(self):
-        with self._lock:
-            if not self._pool.empty():
-                session = self._pool.get()
-                logger.info(f"Reusing existing Spark session from pool:")
-            elif len(self._active_sessions) < self._max_sessions:
-                session = self._create_new_session()
-            else:
-                logger.warning("Maximum number of Spark sessions reached. Waiting for an available session.")
-                session = self._pool.get()  # 사용 가능한 세션이 반환될 때까지 대기
+    def get_spark_session(self, timeout=30):
+        overall_start_time = time.time()
+        start_time = time.time()
+        while True:
+            with self._lock:
+                if not self._pool.empty():
+                    session = self._pool.get()
+                    self._activate_session(session)
+                    overall_end_time = time.time()
+                    logger.info(f"Total time to get session from pool: {overall_end_time - overall_start_time:.4f} seconds")
+                    return session
+                elif len(self._active_sessions) < self._max_sessions:
+                    session = self._create_new_session()
+                    self._activate_session(session)
+                    overall_end_time = time.time()
+                    logger.info(f"Total time to create and activate new session: {overall_end_time - overall_start_time:.4f} seconds")
+                    return session
+                else:
+                    # 오래된 세션 확인 및 강제 해제
+                    current_time = time.time()
+                    for session_id, (session, activation_time) in list(self._active_sessions.items()):
+                        if current_time - activation_time > self._session_timeout:
+                            logger.warning(f"Force releasing session {session_id} due to timeout")
+                            self.release_spark_session(session)
+                            session = self._create_new_session()
+                            self._activate_session(session)
+                            overall_end_time = time.time()
+                            logger.info(f"Total time to force release and create new session: {overall_end_time - overall_start_time:.4f} seconds")
+                            return session
 
-            # 데이터베이스 컨텍스트 설정
-            session.sql("USE f1_database").collect()
+            if time.time() - start_time > timeout:
+                raise TimeoutError("Timeout waiting for available Spark session")
 
-            self._active_sessions.add(session)
-            self._log_session_info(session, "Retrieved")
-            return session
+            time.sleep(1)  # 잠시 대기 후 다시 시도
 
     def release_spark_session(self, session):
         with self._lock:
-            if session in self._active_sessions:
-                self._active_sessions.remove(session)
+            session_id = session.conf.get("custom.session.id")
+            if session_id in self._active_sessions:
+                del self._active_sessions[session_id]
                 self._pool.put(session)
                 self._log_session_info(session, "Released")
             else:
-                logger.warning(f"Attempted to release a session that was not active: {id(session)}")
+                logger.warning(f"Attempted to release a session that was not active: {session_id}")
+
+    def _activate_session(self, session):
+        session_id = session.conf.get("custom.session.id")
+        self._active_sessions[session_id] = (session, time.time())
+        
+        start_time = time.time()
+        session.sql("USE f1_database").collect()
+        end_time = time.time()
+        sql_execution_time = end_time - start_time
+        
+        logger.info(f"SQL execution time: {sql_execution_time:.4f} seconds")
+        self._log_session_info(session, "Retrieved")
 
     def _create_new_session(self):
+        start_time = time.time()
         new_session = self._base_session.newSession()
+        end_time = time.time()
+        session_creation_time = end_time - start_time
+        
         unique_id = str(uuid.uuid4())
         new_session.conf.set("custom.session.id", unique_id)
         logger.info(f"Created new Spark session with ID: {unique_id}")
+        logger.info(f"Session creation time: {session_creation_time:.4f} seconds")
         return new_session
 
     def _log_session_info(self, session, action):
@@ -110,8 +146,11 @@ def get_spark():
     """
     SparkSession을 얻고 반환하는 의존성 주입 함수
     """
-    spark = spark_pool.get_spark_session()
     try:
+        spark = spark_pool.get_spark_session(timeout=30)
         yield spark
+    except TimeoutError:
+        logger.error("Timeout occurred while waiting for a Spark session")
+        raise
     finally:
         spark_pool.release_spark_session(spark)
