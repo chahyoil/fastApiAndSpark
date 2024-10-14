@@ -2,13 +2,13 @@
 from fastapi import FastAPI
 from initialize_f1_data import initialize_f1_data
 from routes import sample, race_routes, driver_routes, constructor_routes, circuit_routes
-from utils.spark_utils import get_spark_session, stop_spark_session
+from utils.spark_utils import SparkSessionPool, get_spark
+
 from middleware.xss_protection import XSSProtectionMiddleware
 from middleware.cors import add_cors_middleware
 from middleware.auth import AuthMiddleware
 from routes import auth_routes, admin_routes
 from utils.logging_utils import setup_logger, get_logger
-from middleware.logging_middleware import LoggingMiddleware
 
 import os
 
@@ -16,8 +16,9 @@ import os
 env = os.getenv("APP_ENV", "dev")
 # 앱 시작 시 로거 설정
 setup_logger(env)
-
 logger = get_logger(__name__)
+
+logger.info(f"Starting FastAPI application with {env} environment")
 
 app = FastAPI(
     title="F1 Race Data API",
@@ -26,8 +27,6 @@ app = FastAPI(
     docs_url="/docs",  # Swagger UI 경로 (기본값)
     redoc_url="/redoc",  # ReDoc 경로 (기본값)
 )
-
-app.add_middleware(LoggingMiddleware)
 
 # CORS 미들웨어 추가
 add_cors_middleware(app)
@@ -40,17 +39,21 @@ app.add_middleware(AuthMiddleware)
 
 @app.on_event("startup")
 async def startup_event():
-    logger.info("Initializing Spark session...")
-    get_spark_session()  # Initialize Spark session
+    logger.info("Initializing Spark session pool...")
+    # SparkSessionPool은 이미 생성되어 있으므로 추가 초기화가 필요 없음
     logger.info("Initializing F1 data...")
-    initialize_f1_data()
+    spark = next(get_spark())
+    try:
+        initialize_f1_data(spark)
+    finally:
+        SparkSessionPool().release_spark_session(spark)
     logger.info("F1 data initialization complete.")
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    logger.info("Stopping Spark session...")
-    stop_spark_session()
-    logger.info("Spark session stopped.")
+    logger.info("Stopping all Spark sessions...")
+    SparkSessionPool().stop_all_sessions()
+    logger.info("All Spark sessions stopped.")
 
 # F1 라우트 포함
 app.include_router(sample.router, prefix="/api/sample")

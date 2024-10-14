@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     libreadline-dev \
     libffi-dev \
     libsqlite3-dev \
+    vim \
     && rm -rf /var/lib/apt/lists/*
 
 # Java 11 설치

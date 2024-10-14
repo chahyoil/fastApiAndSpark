@@ -1,11 +1,13 @@
 from typing import Type
 from pydantic import BaseModel
-from fastapi import Query
+from fastapi import Query, Depends
 from functools import wraps
-from utils.spark_utils import get_spark_session
+from utils.spark_utils import get_spark
 from utils.json_utils import spark_to_json
 from math import ceil
 from utils.logging_utils import get_logger
+from pyspark.sql import SparkSession
+
 
 logger = get_logger(__name__)
 
@@ -15,9 +17,9 @@ def paginate(count_query_template, data_query_template, response_model: Type[Bas
         async def wrapper(
             page: int = Query(1, ge=1, description="Page number"),
             page_size: int = Query(10, ge=1, le=100, description="Number of items per page"),
+            spark: SparkSession = Depends(get_spark),
             *args, **kwargs
         ):
-            spark = get_spark_session()
             
             offset = (page - 1) * page_size
             

@@ -1,18 +1,20 @@
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, Depends
 from dto.driver_dto import DriverResponse, DriverDetailsResponse, DriverStandingsResponse, Driver, DriverDetails, DriverStanding
 from sql.driver_queries import GET_DRIVER_DETAILS, GET_DRIVER_STANDINGS, GET_DRIVERS_COUNT, GET_ALL_DRIVERS
-from utils.spark_utils import get_spark_session
+from utils.spark_utils import get_spark
 from utils.json_utils import spark_to_json
 from utils.error_handlers import handle_exception
 from utils.pagination import paginate
+from pyspark.sql import SparkSession
 
 router = APIRouter()
 
 @router.get("/", response_model=DriverResponse)
 @paginate(GET_DRIVERS_COUNT, GET_ALL_DRIVERS, response_model=Driver)
 async def get_drivers(
+    spark: SparkSession = Depends(get_spark),
     page: int = Query(1, ge=1),
-    page_size: int = Query(10, ge=1, le=100)
+    page_size: int = Query(10, ge=1, le=100),
 ):
     """
     드라이버 목록을 조회합니다.
@@ -20,7 +22,7 @@ async def get_drivers(
     return {}
 
 @router.get("/{driver_id}", response_model=DriverDetailsResponse)
-def get_driver_details(driver_id: int):
+def get_driver_details(driver_id: int, spark: SparkSession = Depends(get_spark)):
     """
     드라이버의 상세 정보를 조회합니다.
 
@@ -34,9 +36,6 @@ def get_driver_details(driver_id: int):
         HTTPException: Spark 쿼리 실행 중 오류 발생 시
     """
     try:
-        # Spark 세션 생성
-        spark = get_spark_session()
-        
         # SQL 쿼리 렌더링
         query = GET_DRIVER_DETAILS.render(driver_id=driver_id)
         
@@ -50,7 +49,7 @@ def get_driver_details(driver_id: int):
         raise handle_exception(e)
 
 @router.get("/{driver_id}/standings", response_model=DriverStandingsResponse)
-def get_driver_standings(driver_id: int, year: int = Query(None)):
+def get_driver_standings(driver_id: int, year: int = Query(None), spark: SparkSession = Depends(get_spark)):
     """
     드라이버의 순위 정보를 조회합니다.
 
@@ -65,8 +64,6 @@ def get_driver_standings(driver_id: int, year: int = Query(None)):
         HTTPException: Spark 쿼리 실행 중 오류 발생 시
     """
     try:
-        # Spark 세션 생성
-        spark = get_spark_session()
         
         # SQL 쿼리 렌더링
         query = GET_DRIVER_STANDINGS.render(driver_id=driver_id, year=year)

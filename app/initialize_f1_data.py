@@ -2,12 +2,22 @@ import os
 from utils.logging_utils import get_logger
 import requests
 import zipfile
-from utils.spark_utils import get_spark_session
+from utils.spark_utils import get_spark
 
 logger = get_logger(__name__)
 
-def initialize_f1_data():
-    spark = get_spark_session()
+def initialize_f1_data(spark):
+
+    database_name = "f1_database"
+
+    try:
+        spark.sql(f"CREATE DATABASE IF NOT EXISTS {database_name}")
+        spark.sql(f"USE {database_name}")
+        logger.info(f"Using database: {database_name}")
+    except Exception as e:
+        logger.warning(f"Failed to create or use database {database_name}: {str(e)}")
+        logger.info("Using default database")
+        database_name = "default"  # 기본 데이터베이스 사용
     
     base_url = "http://ergast.com/downloads/f1db_csv.zip"
     zip_file_name = "f1db_csv.zip"
@@ -30,11 +40,15 @@ def initialize_f1_data():
             if df.count() == 0:
                 logger.warning(f"DataFrame for {file_name} is empty")
             
-            df.createOrReplaceTempView(table_name)
-            logger.info(f"Successfully created temp view {table_name}")
+            spark.sql(f"DROP TABLE IF EXISTS {database_name}.{table_name}")
+
+            # 새 테이블 생성 및 데이터 삽입
+            df.write.saveAsTable(f"{database_name}.{table_name}")
+            logger.info(f"Successfully created table {database_name}.{table_name}")
             
-            sample_data = spark.sql(f"SELECT * FROM {table_name} LIMIT 5").collect()
-            logger.info(f"Sample data from {table_name}:")
+            # 샘플 데이터 확인
+            sample_data = spark.sql(f"SELECT * FROM {database_name}.{table_name} LIMIT 5").collect()
+            logger.info(f"Sample data from {database_name}.{table_name}:")
             for row in sample_data:
                 logger.info(str(row))
         except Exception as e:

@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, Depends
+from pyspark.sql import SparkSession
 from sql.constructor_queries import GET_CONSTRUCTOR_STANDINGS, GET_CONSTRUCTOR_RESULTS, GET_CONSTRUCTOR_STANDINGS_COUNT
-from utils.spark_utils import get_spark_session
+from utils.spark_utils import get_spark
 from utils.json_utils import spark_to_json
 from utils.error_handlers import handle_exception
 from utils.pagination import paginate
@@ -13,7 +14,8 @@ router = APIRouter()
 async def get_constructor_standings(
     year: int = Query(None),
     page: int = Query(1, ge=1),
-    page_size: int = Query(10, ge=1, le=100)
+    page_size: int = Query(10, ge=1, le=100),
+    spark: SparkSession = Depends(get_spark)
     ):
     """
     팀 순위를 조회하는 엔드포인트
@@ -21,10 +23,10 @@ async def get_constructor_standings(
     :param year: 조회할 연도 (선택적)
     :return: 지정된 연도의 팀 순위 데이터
     """
-    return {}  # 실제 데이터는 데코레이터에서 처리됩니다.
+    return {}
 
 @router.get("/{constructor_id}/results", response_model=ConstructorResultsResponse)
-def get_constructor_results(constructor_id: int, year: int = Query(None)):
+def get_constructor_results(constructor_id: int, year: int = Query(None), spark: SparkSession = Depends(get_spark)):
     """
     특정 팀의 결과를 조회하는 엔드포인트
     
@@ -33,9 +35,6 @@ def get_constructor_results(constructor_id: int, year: int = Query(None)):
     :return: 지정된 팀과 연도의 결과 데이터
     """
     try:
-        # Spark 세션 가져오기
-        spark = get_spark_session()
-        
         # SQL 쿼리 렌더링
         query = GET_CONSTRUCTOR_RESULTS.render(constructor_id=constructor_id, year=year)
         
