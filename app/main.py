@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 from initialize_f1_data import initialize_f1_data
 from routes import sample, race_routes, driver_routes, constructor_routes, circuit_routes
-from utils.spark_utils import SparkSessionPool, get_spark
+from utils.spark_utils import SparkSessionPool, get_spark, spark_pool
 
 from middleware.xss_protection import XSSProtectionMiddleware
 from middleware.cors import add_cors_middleware
@@ -38,15 +38,13 @@ app.add_middleware(XSSProtectionMiddleware)
 app.add_middleware(AuthMiddleware)
 
 @app.on_event("startup")
-async def startup_event():
+def startup_event():
     logger.info("Initializing Spark session pool...")
-    # SparkSessionPool은 이미 생성되어 있으므로 추가 초기화가 필요 없음
+    
     logger.info("Initializing F1 data...")
-    spark = next(get_spark())
-    try:
-        initialize_f1_data(spark)
-    finally:
-        SparkSessionPool().release_spark_session(spark)
+    spark = spark_pool._base_session
+    initialize_f1_data(spark)
+    
     logger.info("F1 data initialization complete.")
 
 @app.on_event("shutdown")

@@ -28,15 +28,25 @@ class SparkSessionPool:
                 else:
                     logger.info(f"Existing SparkSessionPool instance returned. Object ID: {id(instance)}")
             return instance
-        
-    def __del__(self):
-        logger.info(f"SparkSessionPool instance is being destroyed. Object ID: {id(self)}")
-        self.stop_all_sessions()
 
     def initialize(self):
         self._pool = Queue()
         self._active_sessions = set()
-        self._max_sessions = 7  # 최대 세션 수 설정
+        self._max_sessions = 3  # 최대 세션 수 설정
+        self._base_session = self._create_base_session()
+
+    def _create_base_session(self):
+        spark = SparkSession.builder \
+            .appName("F1RaceData") \
+            .master("local[*]") \
+            .config("spark.sql.warehouse.dir", "/tmp/spark-warehouse") \
+            .config("javax.jdo.option.ConnectionURL", "jdbc:derby:memory:myDb;create=true") \
+            .config("javax.jdo.option.ConnectionDriverName", "org.apache.derby.jdbc.EmbeddedDriver") \
+            .config("hive.metastore.schema.verification", "false") \
+            .enableHiveSupport() \
+            .getOrCreate()
+        logger.info("Created base Spark session")
+        return spark
 
     def get_spark_session(self):
         with self._lock:
@@ -48,6 +58,9 @@ class SparkSessionPool:
             else:
                 logger.warning("Maximum number of Spark sessions reached. Waiting for an available session.")
                 session = self._pool.get()  # 사용 가능한 세션이 반환될 때까지 대기
+
+            # 데이터베이스 컨텍스트 설정
+            session.sql("USE f1_database").collect()
 
             self._active_sessions.add(session)
             self._log_session_info(session, "Retrieved")
@@ -63,19 +76,11 @@ class SparkSessionPool:
                 logger.warning(f"Attempted to release a session that was not active: {id(session)}")
 
     def _create_new_session(self):
-        spark = SparkSession.builder \
-            .appName("F1RaceData") \
-            .master("local[*]") \
-            .config("spark.sql.warehouse.dir", "/tmp/spark-warehouse") \
-            .getOrCreate()
-        logger.info("Created new Spark session:")
-
-        # new_session = spark.newSession()
-        # # 고유한 식별자 생성 및 설정
-        # unique_id = str(uuid.uuid4())
-        # new_session.conf.set("custom.session.id", unique_id)
-
-        return spark
+        new_session = self._base_session.newSession()
+        unique_id = str(uuid.uuid4())
+        new_session.conf.set("custom.session.id", unique_id)
+        logger.info(f"Created new Spark session with ID: {unique_id}")
+        return new_session
 
     def _log_session_info(self, session, action):
         session_id = id(session)

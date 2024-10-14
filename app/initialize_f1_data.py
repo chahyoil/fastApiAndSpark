@@ -39,11 +39,9 @@ def initialize_f1_data(spark):
             
             if df.count() == 0:
                 logger.warning(f"DataFrame for {file_name} is empty")
-            
-            spark.sql(f"DROP TABLE IF EXISTS {database_name}.{table_name}")
 
             # 새 테이블 생성 및 데이터 삽입
-            df.write.saveAsTable(f"{database_name}.{table_name}")
+            df.write.mode("overwrite").saveAsTable(f"{database_name}.{table_name}")
             logger.info(f"Successfully created table {database_name}.{table_name}")
             
             # 샘플 데이터 확인
