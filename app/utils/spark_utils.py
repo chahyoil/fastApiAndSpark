@@ -5,6 +5,8 @@ from queue import Queue
 import weakref
 import uuid
 import time
+from contextlib import asynccontextmanager
+
 logger = get_logger(__name__)
 
 class SparkSessionPool:
@@ -32,9 +34,9 @@ class SparkSessionPool:
     def initialize(self):
         self._pool = Queue()
         self._active_sessions = {}  # 세션 ID를 키로 사용하는 딕셔너리로 변경
-        self._max_sessions = 4
+        self._max_sessions = 7
         self._base_session = self._create_base_session()
-        self._session_timeout = 30  # 30초 타임아웃
+        self._session_timeout = 3000  # 30초 타임아웃
 
     def _create_base_session(self):
         spark = SparkSession.builder \
@@ -91,6 +93,7 @@ class SparkSessionPool:
                 del self._active_sessions[session_id]
                 self._pool.put(session)
                 self._log_session_info(session, "Released")
+                logger.info(f"Successfully released and returned session to pool: {session_id}")
             else:
                 logger.warning(f"Attempted to release a session that was not active: {session_id}")
 
@@ -142,15 +145,42 @@ class SparkSessionPool:
 # 전역 SparkSessionPool 인스턴스 생성
 spark_pool = SparkSessionPool()
 
+from contextlib import contextmanager, asynccontextmanager
+
+@contextmanager
 def get_spark():
     """
-    SparkSession을 얻고 반환하는 의존성 주입 함수
+    SparkSession을 얻고 반환하는 동기 의존성 주입 함수
     """
     try:
         spark = spark_pool.get_spark_session(timeout=30)
-        yield spark
+        session_id = spark.conf.get("custom.session.id")
+        yield spark, session_id
     except TimeoutError:
         logger.error("Timeout occurred while waiting for a Spark session")
         raise
     finally:
         spark_pool.release_spark_session(spark)
+
+# FastAPI의 Depends와 함께 사용하기 위한 동기 함수
+def get_spark_and_session_id():
+    with get_spark() as (spark, session_id):
+        yield spark, session_id
+
+@asynccontextmanager
+async def get_spark_async():
+    spark = None
+    try:
+        spark = spark_pool.get_spark_session(timeout=30)
+        session_id = spark.conf.get("custom.session.id")
+        logger.info(f"Retrieved spark session with ID: {session_id} for async use")
+        yield spark, session_id
+    finally:
+        if spark:
+            logger.info(f"Releasing spark session with ID: {session_id} after async use")
+            spark_pool.release_spark_session(spark)
+
+# FastAPI의 Depends와 함께 사용하기 위한 비동기 함수
+async def get_spark_and_session_id_async():
+    async with get_spark_async() as (spark, session_id):
+        yield spark, session_id

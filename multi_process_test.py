@@ -1,48 +1,74 @@
 import random
 import time
-from multiprocessing import Process
-from api_client import (
-    fetch_all_race_details,
-    fetch_all_race_results,
-    fetch_all_fastest_laps,
-    fetch_all_driver_info,
-    fetch_all_circuit_info
-)
+import asyncio
+import aiohttp
+import requests
+from concurrent.futures import ThreadPoolExecutor
 
-def random_function():
-    functions = [
-        fetch_all_race_details,
-        fetch_all_race_results,
-        fetch_all_fastest_laps,
-        fetch_all_driver_info,
-        fetch_all_circuit_info
-    ]
-    chosen_function = random.choice(functions)
-    print(f"Executing: {chosen_function.__name__}")
-    chosen_function()
+# 동기 버전 요청 함수
+def send_request_sync(url, sleep_time):
+    start_time = time.time()
+    try:
+        response = requests.get(f"{url}?sleep_time={sleep_time}")
+        result = response.json()
+        end_time = time.time()
+        print(f"Raw response: {result}")
+        print(f"Request completed in {end_time - start_time:.2f} seconds.")
+        if 'session_id' in result:
+            print(f"Session ID: {result['session_id']}")
+        else:
+            print("Session ID not found in response")
+        return result
+    except requests.RequestException as e:
+        print(f"Request failed: {e}")
+        return None
 
-def worker_process():
-    while True:
-        random_function()
-        time.sleep(random.uniform(1, 5))  # 각 함수 실행 사이에 1~5초 대기
+# 비동기 버전 요청 함수
+async def send_request_async(session, url, sleep_time):
+    start_time = time.time()
+    try:
+        async with session.get(f"{url}?sleep_time={sleep_time}") as response:
+            result = await response.json()
+            end_time = time.time()
+            print(f"Raw response: {result}")
+            print(f"Request completed in {end_time - start_time:.2f} seconds.")
+            if 'session_id' in result:
+                print(f"Session ID: {result['session_id']}")
+            else:
+                print("Session ID not found in response")
+            return result
+    except aiohttp.ClientError as e:
+        print(f"Request failed: {e}")
+        return None
+
+# 동기 버전 테스트
+def test_sync():
+    print("\n--- Testing Synchronous Version ---")
+    url = "http://localhost:8000/api/sample/test_spark_session_sync"
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        results = list(executor.map(lambda _: send_request_sync(url, random.randint(1, 5)), range(10)))
+    
+    session_ids = set(result.get('session_id') for result in results if result and 'session_id' in result)
+    print(f"Number of unique session IDs used (sync): {len(session_ids)}")
+
+# 비동기 버전 테스트
+async def test_async():
+    print("\n--- Testing Asynchronous Version ---")
+    url = "http://localhost:8000/api/sample/test_spark_session_async"
+    async with aiohttp.ClientSession() as session:
+        tasks = [send_request_async(session, url, random.randint(1, 5)) for _ in range(10)]
+        results = await asyncio.gather(*tasks)
+    
+    session_ids = set(result.get('session_id') for result in results if result and 'session_id' in result)
+    print(f"Number of unique session IDs used (async): {len(session_ids)}")
+
+# 메인 함수
+async def main():
+    # 동기 버전 테스트
+    test_sync()
+    
+    # 비동기 버전 테스트
+    # await test_async()
 
 if __name__ == "__main__":
-    num_processes = 5  # 동시에 실행할 프로세스 수
-    processes = []
-
-    for _ in range(num_processes):
-        p = Process(target=worker_process)
-        p.start()
-        processes.append(p)
-
-    try:
-        # 메인 프로세스가 계속 실행되도록 함
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        print("Stopping all processes...")
-        for p in processes:
-            p.terminate()
-            p.join()
-
-    print("All processes stopped.")
+    asyncio.run(main())
