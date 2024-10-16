@@ -6,6 +6,7 @@ import weakref
 import uuid
 import time
 from contextlib import asynccontextmanager
+from datetime import datetime
 
 logger = get_logger(__name__)
 
@@ -34,7 +35,7 @@ class SparkSessionPool:
     def initialize(self):
         self._pool = Queue()
         self._active_sessions = {}  # 세션 ID를 키로 사용하는 딕셔너리로 변경
-        self._max_sessions = 7
+        self._max_sessions = 15
         self._base_session = self._create_base_session()
         self._session_timeout = 3000  # 30초 타임아웃
 
@@ -152,35 +153,115 @@ def get_spark():
     """
     SparkSession을 얻고 반환하는 동기 의존성 주입 함수
     """
+    start_time = time.time()
+    start_time_human = datetime.fromtimestamp(start_time).strftime('%Y-%m-%d %H:%M:%S.%f')
+    logger.info(f"[SessionTime] Starting to acquire Spark session at {start_time_human}")
+
     try:
         spark = spark_pool.get_spark_session(timeout=30)
         session_id = spark.conf.get("custom.session.id")
+
+        acquire_time = time.time()
+        acquire_time_human = datetime.fromtimestamp(acquire_time).strftime('%Y-%m-%d %H:%M:%S.%f')
+        logger.info(f"[SessionTime] Acquired Spark session at {acquire_time_human} with session_id: {session_id}")
+        logger.info(f"[SessionTime] Time to acquire session: {acquire_time - start_time:.4f} seconds with session_id: {session_id}")
+
         yield spark, session_id
     except TimeoutError:
         logger.error("Timeout occurred while waiting for a Spark session")
         raise
     finally:
-        spark_pool.release_spark_session(spark)
+        end_time = time.time()
+        end_time_human = datetime.fromtimestamp(end_time).strftime('%Y-%m-%d %H:%M:%S.%f')
+        logger.info(f"[SessionTime] Releasing Spark session at {end_time_human} with session_id: {session_id}")
+        
+        if 'spark' in locals():
+            spark_pool.release_spark_session(spark)
+            release_time = time.time()
+            release_time_human = datetime.fromtimestamp(release_time).strftime('%Y-%m-%d %H:%M:%S.%f')
+            logger.info(f"[SessionTime] Released Spark session at {release_time_human} with session_id: {session_id}")
+            logger.info(f"[SessionTime] Total time for Spark session usage: {release_time - acquire_time:.4f} seconds with session_id: {session_id}")
+        else:
+            logger.warning("Spark session was not acquired, so it cannot be released")
 
-# FastAPI의 Depends와 함께 사용하기 위한 동기 함수
+        logger.info(f"[SessionTime] Total time in get_spark context: {end_time - start_time:.4f} seconds with session_id: {session_id}")
+
 def get_spark_and_session_id():
     with get_spark() as (spark, session_id):
         yield spark, session_id
 
-@asynccontextmanager
-async def get_spark_async():
-    spark = None
-    try:
-        spark = spark_pool.get_spark_session(timeout=30)
-        session_id = spark.conf.get("custom.session.id")
-        logger.info(f"Retrieved spark session with ID: {session_id} for async use")
-        yield spark, session_id
-    finally:
-        if spark:
-            logger.info(f"Releasing spark session with ID: {session_id} after async use")
-            spark_pool.release_spark_session(spark)
+#####
 
-# FastAPI의 Depends와 함께 사용하기 위한 비동기 함수
-async def get_spark_and_session_id_async():
-    async with get_spark_async() as (spark, session_id):
-        yield spark, session_id
+# from pyspark.sql import SparkSession
+# from contextlib import contextmanager
+# import uuid
+# from utils.logging_utils import get_logger
+# import time
+# from datetime import datetime
+
+# logger = get_logger(__name__)
+
+# _spark_session = None
+
+# def get_spark_session():
+#     global _spark_session
+#     if _spark_session is None:
+#         _spark_session = SparkSession.builder \
+#             .appName("F1RaceData") \
+#             .master("local[*]") \
+#             .getOrCreate()
+#     return _spark_session
+
+# def stop_spark_session():
+#     global _spark_session
+#     if _spark_session:
+#         _spark_session.stop()
+#         _spark_session = None
+
+# @contextmanager
+# def get_spark():
+#     """
+#     SparkSession을 얻고 반환하는 동기 의존성 주입 함수
+#     """
+#     global _spark_session
+#     start_time = time.time()
+#     start_time_human = datetime.fromtimestamp(start_time).strftime('%Y-%m-%d %H:%M:%S.%f')
+#     logger.info(f"[SessionTime] Starting to acquire Spark session at {start_time_human}")
+
+#     spark = get_spark_session()
+#     session_id = spark.sparkContext.applicationId
+
+#     acquire_time = time.time()
+#     acquire_time_human = datetime.fromtimestamp(acquire_time).strftime('%Y-%m-%d %H:%M:%S.%f')
+#     logger.info(f"[SessionTime] Acquired Spark session at {acquire_time_human}")
+#     logger.info(f"[SessionTime] Time to acquire session: {acquire_time - start_time:.2f} seconds")
+
+#     try:
+#         yield spark, session_id
+#     finally:
+#         end_time = time.time()
+#         end_time_human = datetime.fromtimestamp(end_time).strftime('%Y-%m-%d %H:%M:%S.%f')
+#         logger.info(f"[SessionTime] Finished using Spark session at {end_time_human}")
+#         logger.info(f"[SessionTime] Total time for Spark session usage: {end_time - acquire_time:.2f} seconds")
+#         # 주의: 여기서는 세션을 중지하지 않습니다. 글로벌 세션을 유지합니다.
+
+# def get_spark_and_session_id():
+#     with get_spark() as (spark, session_id):
+#         yield spark, session_id
+
+# class SparkSessionPool:
+#     def __init__(self):
+#         self._base_session = get_spark_session()
+
+#     def get_spark_session(self, timeout=30):
+#         return get_spark_session()
+
+#     def release_spark_session(self, session):
+#         # 싱글톤 패턴에서는 실제로 세션을 해제하지 않습니다.
+#         pass
+
+#     def stop_all_sessions(self):
+#         stop_spark_session()
+
+# # 전역 SparkSessionPool 인스턴스 생성 (실제로는 싱글톤을 사용)
+# spark_pool = SparkSessionPool()

@@ -1,74 +1,59 @@
-import random
 import time
-import asyncio
-import aiohttp
 import requests
+import json
 from concurrent.futures import ThreadPoolExecutor
+import threading
 
-# 동기 버전 요청 함수
-def send_request_sync(url, sleep_time):
-    start_time = time.time()
+def send_request_sync(url, thread_id):
+    thread_start_time = time.time()
+    print(f"Thread {thread_id} started at {thread_start_time:.2f}")
+    
     try:
-        response = requests.get(f"{url}?sleep_time={sleep_time}")
+        response = requests.get(url)
         result = response.json()
-        end_time = time.time()
-        print(f"Raw response: {result}")
-        print(f"Request completed in {end_time - start_time:.2f} seconds.")
+        thread_end_time = time.time()
+        print(f"Thread {thread_id} completed in {thread_end_time - thread_start_time:.2f} seconds.")
         if 'session_id' in result:
-            print(f"Session ID: {result['session_id']}")
+            print(f"Thread {thread_id} Session ID: {result['session_id']}")
         else:
-            print("Session ID not found in response")
-        return result
+            print(f"Thread {thread_id} Session ID not found in response")
+
+        print(f"Thread {thread_id} Ends at {thread_end_time:.2f}")
+        return result, thread_id, thread_start_time, thread_end_time
     except requests.RequestException as e:
-        print(f"Request failed: {e}")
-        return None
+        print(f"Thread {thread_id} Request failed: {e}")
+        return None, thread_id, thread_start_time, time.time()
+    except json.JSONDecodeError as e:
+        print(f"Thread {thread_id} JSON decode error: {e}")
+        return None, thread_id, thread_start_time, time.time()
 
-# 비동기 버전 요청 함수
-async def send_request_async(session, url, sleep_time):
-    start_time = time.time()
-    try:
-        async with session.get(f"{url}?sleep_time={sleep_time}") as response:
-            result = await response.json()
-            end_time = time.time()
-            print(f"Raw response: {result}")
-            print(f"Request completed in {end_time - start_time:.2f} seconds.")
-            if 'session_id' in result:
-                print(f"Session ID: {result['session_id']}")
-            else:
-                print("Session ID not found in response")
-            return result
-    except aiohttp.ClientError as e:
-        print(f"Request failed: {e}")
-        return None
-
-# 동기 버전 테스트
 def test_sync():
     print("\n--- Testing Synchronous Version ---")
     url = "http://localhost:8000/api/sample/test_spark_session_sync"
+    
+    overall_start_time = time.time()
     with ThreadPoolExecutor(max_workers=10) as executor:
-        results = list(executor.map(lambda _: send_request_sync(url, random.randint(1, 5)), range(10)))
+        futures = [executor.submit(send_request_sync, url, i) for i in range(10)]
+        results = [future.result() for future in futures]
     
-    session_ids = set(result.get('session_id') for result in results if result and 'session_id' in result)
-    print(f"Number of unique session IDs used (sync): {len(session_ids)}")
-
-# 비동기 버전 테스트
-async def test_async():
-    print("\n--- Testing Asynchronous Version ---")
-    url = "http://localhost:8000/api/sample/test_spark_session_async"
-    async with aiohttp.ClientSession() as session:
-        tasks = [send_request_async(session, url, random.randint(1, 5)) for _ in range(10)]
-        results = await asyncio.gather(*tasks)
+    overall_end_time = time.time()
     
-    session_ids = set(result.get('session_id') for result in results if result and 'session_id' in result)
-    print(f"Number of unique session IDs used (async): {len(session_ids)}")
+    print("\nResults summary:")
+    for result, thread_id, start_time, end_time in results:
+        if result:
+            print(f"Thread {thread_id}:")
+            print(f"  Started at: {start_time:.2f}")
+            print(f"  Ended at: {end_time:.2f}")
+            print(f"  Duration: {end_time - start_time:.2f} seconds")
+            print(f"  Session ID: {result.get('session_id', 'Not found')}")
+        else:
+            print(f"Thread {thread_id}: Failed")
+        print()
+    
+    print(f"Overall execution time: {overall_end_time - overall_start_time:.2f} seconds")
 
-# 메인 함수
-async def main():
-    # 동기 버전 테스트
+def main():
     test_sync()
-    
-    # 비동기 버전 테스트
-    # await test_async()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

@@ -43,6 +43,7 @@ def startup_event():
     
     logger.info("Initializing F1 data...")
     spark = spark_pool._base_session
+    # spark = get_spark()
     initialize_f1_data(spark)
     
     logger.info("F1 data initialization complete.")
