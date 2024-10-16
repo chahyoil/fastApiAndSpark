@@ -35,7 +35,7 @@ class SparkSessionPool:
     def initialize(self):
         self._pool = Queue()
         self._active_sessions = {}  # 세션 ID를 키로 사용하는 딕셔너리로 변경
-        self._max_sessions = 15
+        self._max_sessions = 20
         self._base_session = self._create_base_session()
         self._session_timeout = 3000  # 30초 타임아웃
 
@@ -160,9 +160,12 @@ def get_spark():
     try:
         spark = spark_pool.get_spark_session(timeout=30)
         session_id = spark.conf.get("custom.session.id")
+        
+        spark_id = id(spark)
 
         acquire_time = time.time()
         acquire_time_human = datetime.fromtimestamp(acquire_time).strftime('%Y-%m-%d %H:%M:%S.%f')
+        logger.info(f"[SessionTime] spark_id: {spark_id}")
         logger.info(f"[SessionTime] Acquired Spark session at {acquire_time_human} with session_id: {session_id}")
         logger.info(f"[SessionTime] Time to acquire session: {acquire_time - start_time:.4f} seconds with session_id: {session_id}")
 
@@ -210,6 +213,7 @@ def get_spark_and_session_id():
 #             .appName("F1RaceData") \
 #             .master("local[*]") \
 #             .getOrCreate()
+
 #     return _spark_session
 
 # def stop_spark_session():

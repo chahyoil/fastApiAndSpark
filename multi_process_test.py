@@ -32,8 +32,8 @@ def test_sync():
     url = "http://localhost:8000/api/sample/test_spark_session_sync"
     
     overall_start_time = time.time()
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = [executor.submit(send_request_sync, url, i) for i in range(10)]
+    with ThreadPoolExecutor(max_workers=20) as executor:
+        futures = [executor.submit(send_request_sync, url, i) for i in range(20)]
         results = [future.result() for future in futures]
     
     overall_end_time = time.time()
